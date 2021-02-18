@@ -1,0 +1,15 @@
+iptables -t nat -A POSTROUTING -o tun0 -j MASQUERADE
+mkdir /dev/net
+mknod /dev/net/tun c 10 200
+while true; do
+	interface=$(ip -o addr show scope global|grep '10\.11\.8\.')
+	if [[ ! -z "$interface" ]]; then
+		interface=$(echo $interface|awk '{print $2}'|head -n1)
+		break
+	fi
+	sleep 5
+done
+ip addr add 10.11.8.1/24 dev $interface
+sed -i s/eth1/$interface/g /udhcpd.conf
+udhcpd /udhcpd.conf
+openvpn --config /config.ovpn
